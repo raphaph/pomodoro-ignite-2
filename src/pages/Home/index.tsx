@@ -12,6 +12,7 @@ import {
   StartsCountdownButton,
   TaskInput,
 } from './styles'
+import { useState } from 'react'
 
 const newCycleFormValidationSchema = zod.object({
   task: zod.string().min(5, 'Informe a tarefa'),
@@ -25,7 +26,37 @@ const newCycleFormValidationSchema = zod.object({
 
 type NewCycleFormProps = zod.infer<typeof newCycleFormValidationSchema>
 
+interface Cycle {
+  id: string
+  task: string
+  minutesAmount: number
+}
+
 export function Home() {
+  const [cycles, setCycles] = useState<Cycle[]>([]) // cria um novo state referenciando a interface acima
+  const [activeCycleId, setActiveCycleId] = useState<string | null>(null) // recupera o activeCycleId do cycle
+
+  const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId) // retorna o cycle ativo com id
+
+  console.log(activeCycle)
+
+  function handleCreateNewCycle(data: NewCycleFormProps) {
+    // data retorna os dados do formulário
+    const id = String(new Date().getTime()) // armazena o id com uma string que recebe um valor unixtime
+
+    const newCycle: Cycle = {
+      // define os dados novo cycle
+      id,
+      task: data.task,
+      minutesAmount: data.minutesAmount,
+    }
+
+    setCycles((state) => [...state, newCycle]) // atualiza a lista de cycles executados
+    setActiveCycleId(newCycle.id) // atualiza o state com id atual do cycle ativo
+
+    reset()
+  }
+
   const { register, handleSubmit, watch, reset } = useForm<NewCycleFormProps>({
     resolver: zodResolver(newCycleFormValidationSchema),
     defaultValues: {
@@ -33,11 +64,6 @@ export function Home() {
       minutesAmount: 5,
     },
   })
-
-  function handleCreateNewCycle(data: NewCycleFormProps) {
-    console.log(data)
-    reset()
-  }
 
   const task = watch('task')
   const minutesAmount = watch('minutesAmount')
