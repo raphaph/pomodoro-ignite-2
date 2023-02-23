@@ -1,4 +1,8 @@
 import { Play } from 'phosphor-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as zod from 'zod'
+
 import {
   CountDownCotnainer,
   FormContainer,
@@ -9,16 +13,46 @@ import {
   TaskInput,
 } from './styles'
 
+const newCycleFormValidationSchema = zod.object({
+  task: zod.string().min(5, 'Informe a tarefa'),
+  minutesAmount: zod.number().min(5).max(60),
+})
+
+// interface NewCycleFormProps {
+//   task: string
+//   minutesAmount: number
+// }
+
+type NewCycleFormProps = zod.infer<typeof newCycleFormValidationSchema>
+
 export function Home() {
+  const { register, handleSubmit, watch, reset } = useForm<NewCycleFormProps>({
+    resolver: zodResolver(newCycleFormValidationSchema),
+    defaultValues: {
+      task: '',
+      minutesAmount: 5,
+    },
+  })
+
+  function handleCreateNewCycle(data: NewCycleFormProps) {
+    console.log(data)
+    reset()
+  }
+
+  const task = watch('task')
+  const minutesAmount = watch('minutesAmount')
+  const isSubmitDisabled = !task || !minutesAmount
+
   return (
     <HomeContainer>
-      <form action="">
+      <form onSubmit={handleSubmit(handleCreateNewCycle)} action="">
         <FormContainer>
           <label htmlFor="task">Vou trabalhar em</label>
           <TaskInput
+            id="task"
             list="task-suggestions"
             placeholder="Dê um nome para o seu projeto"
-            id="task"
+            {...register('task')}
           />
 
           <label htmlFor="minutesAmount">durante</label>
@@ -29,6 +63,7 @@ export function Home() {
             step={5}
             max={60}
             min={5}
+            {...register('minutesAmount', { valueAsNumber: true })}
           />
 
           <datalist id="task-suggestions">
@@ -49,7 +84,7 @@ export function Home() {
           <span>0</span>
         </CountDownCotnainer>
 
-        <StartsCountdownButton type="submit">
+        <StartsCountdownButton disabled={isSubmitDisabled} type="submit">
           <Play />
           Começar
         </StartsCountdownButton>
