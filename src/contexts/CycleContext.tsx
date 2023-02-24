@@ -1,13 +1,17 @@
-import { createContext, ReactNode, useState } from 'react'
-
-interface Cycle {
-  id: string
-  task: string
-  minutesAmount: number
-  startDate: Date
-  interruptedDate?: Date
-  finishedDate?: Date
-}
+import {
+  createContext,
+  ReactNode,
+  useEffect,
+  useReducer,
+  useState,
+} from 'react'
+import {
+  ActionTypes,
+  addNewCycleAction,
+  interruptCycleAction,
+  markCycleAsFinishedAction,
+} from '../reducers/cycles/actions'
+import { Cycle, cyclesReducer } from '../reducers/cycles/reducer'
 
 interface CreateCycleDate {
   task: string
@@ -34,22 +38,51 @@ interface CyclesContextProviderProps {
 export function CyclesContextProvider({
   children,
 }: CyclesContextProviderProps) {
-  const [cycles, setCycles] = useState<Cycle[]>([]) // cria um novo state referenciando a interface acima
-  const [activeCycleId, setActiveCycleId] = useState<string | null>(null) // recupera o activeCycleId do cycle
+  // const [cycles, setCycles] = useState<Cycle[]>([]) // cria um novo state referenciando a interface acima
+
+  const [cyclesState, dispatch] = useReducer(
+    cyclesReducer,
+    {
+      cycles: [],
+      activeCycleId: null,
+    },
+    (initialState) => {
+      const storedStateAsJSON = localStorage.getItem(
+        '@ignite-timer:cycles-state-1.0.0',
+      )
+
+      if (storedStateAsJSON) {
+        return JSON.parse(storedStateAsJSON) // EU ACHO QUE ESSE FUNÇÃO AQUI RETORNA OS DADOS ANTERIORES SALVOS NO LOCALSTORAGE PRA NOSSA LISTA
+      }
+
+      return initialState
+    },
+  )
+
+  const { cycles, activeCycleId } = cyclesState
+
+  // const [activeCycleId, setActiveCycleId] = useState<string | null>(null) // recupera o activeCycleId do cycle
   const [amountSecondsPassed, setAmountSecondsPassed] = useState(0)
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId) // retorna o cycle ativo com id
 
+  useEffect(() => {
+    const statejSON = JSON.stringify(cyclesState)
+
+    localStorage.setItem('@ignite-timer:cycles-state-1.0.0', statejSON)
+  }, [cyclesState])
+
   function markCurrentCycleAsFinished() {
-    setCycles((state) =>
-      state.map((cycle) => {
-        if (cycle.id === activeCycleId) {
-          return { ...cycle, finishedDate: new Date() }
-        } else {
-          return cycle
-        }
-      }),
-    )
-    setActiveCycleId(null)
+    dispatch(markCycleAsFinishedAction())
+    // setCycles((state) =>
+    //   state.map((cycle) => {
+    //     if (cycle.id === activeCycleId) {
+    //       return { ...cycle, finishedDate: new Date() }
+    //     } else {
+    //       return cycle
+    //     }
+    //   }),
+    // )
+    // setActiveCycleId(null)
   }
 
   function setSecondsPassed(seconds: number) {
@@ -68,24 +101,27 @@ export function CyclesContextProvider({
       startDate: new Date(),
     }
 
-    setCycles((state) => [...state, newCycle]) // atualiza a lista de cycles executados
-    setActiveCycleId(newCycle.id) // atualiza o state com id atual do cycle ativo
+    dispatch(addNewCycleAction(newCycle))
+
+    // setCycles((state) => [...state, newCycle]) // atualiza a lista de cycles executados
+    // setActiveCycleId(newCycle.id) // atualiza o state com id atual do cycle ativo | FOI PRO REDUCER
     setAmountSecondsPassed(0)
 
     // reset()
   }
 
   function interruptCycle() {
-    setCycles((state) =>
-      state.map((cycle) => {
-        if (cycle.id === activeCycleId) {
-          return { ...cycle, interruptedDate: new Date() }
-        } else {
-          return cycle
-        }
-      }),
-    )
-    setActiveCycleId(null)
+    dispatch(interruptCycleAction())
+    // setCycles((state) =>
+    //   state.map((cycle) => {
+    //     if (cycle.id === activeCycleId) {
+    //       return { ...cycle, interruptedDate: new Date() }
+    //     } else {
+    //       return cycle
+    //     }
+    //   }),
+    // )
+    // setActiveCycleId(null)
   }
 
   return (
