@@ -1,6 +1,5 @@
 import { ActionTypes } from './actions'
 import { produce } from 'immer'
-import { current } from 'immer/dist/internal'
 
 export interface Cycle {
   id: string
